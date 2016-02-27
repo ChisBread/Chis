@@ -1,3 +1,4 @@
 # Chis
 gomoku AI
-use chis_move to move :)
+
+#use chis_move to move :)
