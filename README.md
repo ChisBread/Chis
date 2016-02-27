@@ -1,0 +1,2 @@
+# Chis
+gomoku AI
