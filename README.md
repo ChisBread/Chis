@@ -7,7 +7,7 @@ Documented in author's native language (Chinese)
 * Original author: PeiMing Zheng
 * Original website: None
 * Programming language: C++
-* OS: Windows/Linux/...
+* OS: Windows
 
 Visual Studio solution includes 1 projects:
 - Chis project creates executable which can be used to play game in [Piskvork](https://sourceforge.net/projects/piskvork/). It can also participate in the [Gomocup tournament](http://gomocup.org/).
