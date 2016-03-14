@@ -3,17 +3,22 @@
 #include <algorithm>
 #include <cstdlib>
 #include <time.h>
+#include <iostream>
 #pragma comment(lib,"psapi.lib") 
 /////////////编译开关////////////
-//#define CHIS_DEBUG //debug 开关
+#define CHIS_DEBUG //debug 开关
 //#define CHIS_DEFEND //选点策略
-//#define CHIS_TEST2//估值策略测试
 //#define CHIS_EXP
 #define CHIS_VCT
+//#define CHIS_PROFILE
 //#define CHIS_PARALLEL_KILL
 //#define CHIS_VCT_EXP
 #define NEGA_WON (INT_MAX - 1)
 #define NEGA_LOS (INT_MIN + 2)
+#define HASH_GAMEOVER 0
+#define HASH_ALPHA 1
+#define HASH_PV 2
+#define HASH_BETA 3
 using namespace chis;
 
 ////////////////////////////////基本功能/////////////////////////////////
@@ -21,57 +26,6 @@ size_t chis::time() {
 	SYSTEMTIME t;
 	GetLocalTime(&t);
 	return (t.wMinute * 60 + t.wSecond) * 1000 + t.wMilliseconds;
-}
-
-void chis::get_move(int(&ps)[30][30], Board &b) {
-	for(int i = 0; i < SIZE; ++i) {
-		for(int j = 0; j < SIZE; ++j) {
-			if(b[i][j]) {//找候选点
-				for(int k = 1, p = 2; k < 3; ++k, --p) {
-					if(i + k < SIZE) {
-						if(!b[i + k][j]) {
-							ps[i + k][j] += p;
-						}
-						if(j + k < SIZE) {
-							if(!b[i + k][j + k]) {
-								ps[i + k][j + k] += p;
-							}
-						}
-						if(j - k >= 0) {
-							if(!b[i + k][j - k]) {
-								ps[i + k][j - k] += p;
-							}
-						}
-					}
-					if(i - k >= 0) {
-						if(!b[i - k][j]) {
-							ps[i - k][j] += p;
-						}
-						if(j + k < SIZE) {
-							if(!b[i - k][j + k]) {
-								ps[i - k][j + k] += p;
-							}
-						}
-						if(j - k >= 0) {
-							if(!b[i - k][j - k]) {
-								ps[i - k][j - k] += p;
-							}
-						}
-					}
-					if(j + k < SIZE) {
-						if(!b[i][j + k]) {
-							ps[i][j + k] += p;
-						}
-					}
-					if(j - k >= 0) {
-						if(!b[i][j - k]) {
-							ps[i][j - k] += p;
-						}
-					}
-				}
-			}
-		}
-	}
 }
 void chis::get_move_in_root(int(&ps)[30][30], Board &b) {
 	int cl = (b.move_count() % 2 ? -1 : 1);
@@ -298,21 +252,27 @@ void def_prune(Board &b, std::vector<_point_with_value> &moves) {
 
 bool vctf_search(Board &b, bool p) {
 	//可加可不加的置换
-	if(ptb.find(b.hash_value()) != ptb.end()) {
+	if(ptb.find(b.hash_value()) != ptb.end() && ptb[b.hash_value()].hash_flag == HASH_GAMEOVER) {
 		if(p) {//算杀方
-			if(ptb[b.hash_value()].value == NEGA_LOS) {//上家输，算杀成功
+			if(ptb[b.hash_value()].value == NEGA_WON) {//上家输，算杀成功
 #ifdef CHIS_DEBUG
 				++hashfinded;
 #endif
 				return true;
 			}
+			else {
+				return false;
+			}
 		}
 		else {//防守方
-			if(ptb[b.hash_value()].value == NEGA_WON) {//上家赢，算杀成功
+			if(ptb[b.hash_value()].value == NEGA_LOS) {//上家赢，算杀成功
 #ifdef CHIS_DEBUG
 				++hashfinded;
 #endif
 				return true;
+			}
+			else {
+				return false;
 			}
 		}
 	}
@@ -344,13 +304,12 @@ bool vctf_search(Board &b, bool p) {
 		return false;
 	}
 	std::vector<_point_with_value> moves;
-	int ps[30][30] = {};
-	int color = (b.move_count() % 2 ? -1 : 1);//0代表返回最大，1代表返回最小
-	chis::get_move(ps, b);
+	//int ps[30][30] = {};
+	int color = b.turn_color();//0代表返回最大，1代表返回最小
 	for(int i = 0; i < chis::SIZE; ++i) {
 		for(int j = 0; j < chis::SIZE; ++j) {
-			if(ps[i][j] >= 2) {
-				moves.push_back(_point_with_value(Point(i, j), b.try_set_nega(i, j, color)));
+			if(b.ps[i][j] >= 2 && !b[i][j]) {
+				moves.push_back(_point_with_value(Point(i, j), 0));
 			}
 		}
 	}
@@ -373,16 +332,19 @@ bool vctf_search(Board &b, bool p) {
 	if(moves.empty()) {
 		return false;
 	}
+	for(auto &i : moves) {
+		i.value = b.try_set_nega(i.first.x, i.first.y, color);
+	}
 	std::sort(moves.begin(), moves.end());
 	bool pn = !p;//算杀方从0起算，防守方从1起算
 	for(auto&i : moves) {
 		const Point &po = i.first;
-		b.set(po.x, po.y, color);
+		b.move(po.x, po.y);
 		++vc_depth;
 		if(p) {//算杀方，OR
 			pn = pn || vctf_search(b, !p);
 			--vc_depth;
-			b.set(po.x, po.y, 0);
+			b.unmove();
 			if(pn) {
 				break;//如果有算杀方有一处杀，返回算杀成功
 			}
@@ -390,7 +352,7 @@ bool vctf_search(Board &b, bool p) {
 		else {//防守方，AND
 			pn = pn && vctf_search(b, !p);
 			--vc_depth;
-			b.set(po.x, po.y, 0);
+			b.unmove();
 			if(!pn) {
 				break;//如果防守方有一处活，返回算杀失败
 			}
@@ -401,29 +363,88 @@ bool vctf_search(Board &b, bool p) {
 	++node_count;
 #endif
 	if(pn) {//算到了杀
-		ptb[b.hash_value()] = { 9, p ? NEGA_LOS : NEGA_WON };//p?上家LOS， !p?上家WON
+		ptb[b.hash_value()] = { HASH_GAMEOVER ,99, p ? NEGA_WON : NEGA_LOS };//p?WON， !p?LOS
 	}
 	return pn;
 }
 //////////////////////////////待测算法/////////////////////////////////////
 
 //////////////////////////////搜索算法/////////////////////////////////////
-int chis::max_min_search(Board &b, int alpha, int beta) {
-	if(ptb.find(b.hash_value()) != ptb.end()) {
-		if(ptb[b.hash_value()].depth >= (SEARCH_DEPTH - depth)) {
-
-#ifdef CHIS_DEBUG
-			++hashfinded;
+int chis::max_min_search(Board &b, int alpha, int beta, int ply) {
+#ifdef CHIS_PROFILE
+	LARGE_INTEGER t_bg;
+	QueryPerformanceCounter(&t_bg);
 #endif
+	if(ptb.find(b.hash_value()) != ptb.end()) {
+		if(ptb[b.hash_value()].depth == ply) {
+#ifdef CHIS_DEBUG
+			
+			++hashfinded;
+#endif		
+			if(ptb[b.hash_value()].hash_flag == HASH_BETA) {
+				if(ptb[b.hash_value()].value >= beta) {
+					return ptb[b.hash_value()].value;
+				}
+			}
+			else if(ptb[b.hash_value()].hash_flag == HASH_ALPHA) {
+				if(ptb[b.hash_value()].value <= alpha) {
+					return ptb[b.hash_value()].value;
+				}
+			}
+			else if(ptb[b.hash_value()].hash_flag == HASH_PV) {
+				if(ptb[b.hash_value()].value > alpha && ptb[b.hash_value()].value < beta) {
+					return ptb[b.hash_value()].value;
+				}
+			}
+		}
+		else if(ptb[b.hash_value()].hash_flag == HASH_GAMEOVER) {
 			return ptb[b.hash_value()].value;
 		}
+//		//待测策略
+//		else if(ptb[b.hash_value()].depth > ply) {
+//#ifdef CHIS_DEBUG
+//			++hashfinded;
+//#endif		
+//			if(ptb[b.hash_value()].hash_flag == HASH_BETA) {
+//				if(ptb[b.hash_value()].value >= beta) {
+//					return ptb[b.hash_value()].value;
+//				}
+//			}
+//			else if(ptb[b.hash_value()].hash_flag == HASH_ALPHA) {
+//				if(ptb[b.hash_value()].value <= alpha) {
+//					return ptb[b.hash_value()].value;
+//				}
+//			}
+//		}
 	}
+	if(!(time() % 200)) {
+		GetProcessMemoryInfo(handle, &pmc, sizeof(pmc));//获取内存占用信息
+		if(pmc.WorkingSetSize >= HASH_SIZE * (1024 * 1024)) {
+			for(int i = 0; i < 400; ++i) {
+				mtb[i].clear();
+			}
+		}
+	}
+#ifdef CHIS_PROFILE
+	LARGE_INTEGER t_hash;
+	QueryPerformanceCounter(&t_hash);
+	hash_finder_pf += (t_hash.QuadPart - t_bg.QuadPart);
+#endif
+#ifdef CHIS_PROFILE
+	QueryPerformanceCounter(&t_bg);
+#endif
 	//终局剪枝
-	if(b.have_winner()) {
-		return NEGA_WON;
+	if(b.have_winner()) {//上家已经赢了
+		ptb[b.hash_value()] = { HASH_GAMEOVER, 99, NEGA_LOS };
+		return NEGA_LOS;
 	}
+#ifdef CHIS_PROFILE
+	LARGE_INTEGER t_gmover;
+	QueryPerformanceCounter(&t_gmover);
+	gm_over_pf += (t_gmover.QuadPart - t_bg.QuadPart);
+#endif
 	//深度
-	if(depth > SEARCH_DEPTH) {
+	if(ply <= 0) {
 #ifdef CHIS_EXP
 		if((b.move_count() % 2) ?
 			(b.black_patterns().four_b)
@@ -434,7 +455,7 @@ int chis::max_min_search(Board &b, int alpha, int beta) {
 				max_scdepth = SEARCH_DEPTH;
 			}
 #endif
-			int v = max_min_search(b, alpha, beta);//棋子带来的影响
+			int v = -max_min_search(b, alpha, beta);//棋子带来的影响
 			--SEARCH_DEPTH;
 			return v;
 		}
@@ -444,40 +465,64 @@ int chis::max_min_search(Board &b, int alpha, int beta) {
 		++eval_cnt;
 #endif
 #ifdef CHIS_VCT
+#ifdef CHIS_PROFILE
+		QueryPerformanceCounter(&t_bg);
+#endif
 		if(v > -beta && v < -alpha) {//可能被选中的情况下
 			if(vctf_search(b, true)) {//算杀。（奇数层为opp）
 #ifdef CHIS_DEBUG
 				++vct_cnt;
 #endif
-				return NEGA_LOS;
+				ptb[b.hash_value()] = { HASH_GAMEOVER, 99, NEGA_WON };
+				return NEGA_WON;//
 			}
 		}
+#ifdef CHIS_PROFILE
+		LARGE_INTEGER t_vct;
+		QueryPerformanceCounter(&t_vct);
+		vct_finder_pf += t_vct.QuadPart - t_bg.QuadPart;
+#endif
 #endif
 		return v;
 	}
+#ifdef CHIS_PROFILE
+	QueryPerformanceCounter(&t_bg);
+#endif
 	std::vector<_point_with_value> moves;
-
-	int color = (b.move_count() % 2 ? -1 : 1);//0代表返回最大，1代表返回最小
-	int ps[30][30] = {};
-	get_move(ps, b);
-	for(int i = 0; i < SIZE; ++i) {
-		for(int j = 0; j < SIZE; ++j) {
-			if(ps[i][j] >= 2) {
-				moves.push_back(_point_with_value(Point(i, j), b.point_eval(i, j, color)));
+	int color = b.turn_color();//0代表返回最大，1代表返回最小
+	if(mtb[b.move_count()].find(b.hash_value()) == mtb[b.move_count()].end()) {
+		for(char i = 0; i < SIZE; ++i) {
+			for(char j = 0; j < SIZE; ++j) {
+				if(b.ps[i][j] >= 2 && !b[i][j]) {
+					moves.push_back(_point_with_value({ i, j }, 0));
+				}
 			}
 		}
-	}
-	safe_prune(b, moves);
-	if(pvs.find(b.hash_value()) != pvs.end()) {
+		safe_prune(b, moves);
 		for(auto &i : moves) {
-			if(i.first == pvs[b.hash_value()]) {//如果是主要变例，给一个最大估值
-				i.value = 10000;
-				break;
+			i.value = b.point_eval(i.first.x, i.first.y, color);
+		}
+		std::sort(moves.begin(), moves.end());//降序
+		mtb[b.move_count()][b.hash_value()] = moves;
+	}
+	else {
+		moves = mtb[b.move_count()][b.hash_value()];
+		if(pvs.find(b.hash_value()) != pvs.end()) {
+			for(auto &i : moves) {
+				if(i.first == pvs[b.hash_value()]) {//如果是主要变例，给一个最大估值
+					i.value = 10000;
+					break;
+				}
 			}
+			std::sort(moves.begin(), moves.end());
 		}
 	}
-	std::sort(moves.begin(), moves.end());//降序
-
+#ifdef CHIS_PROFILE
+	LARGE_INTEGER t_mv_creater;
+	QueryPerformanceCounter(&t_mv_creater);
+	move_creater_pf += (t_mv_creater.QuadPart - t_bg.QuadPart);
+#endif
+	
 	int _alpha = -alpha;
 	int _beta = -beta;
 	int max_v = NEGA_LOS;//插入置换表的真实最值
@@ -485,16 +530,14 @@ int chis::max_min_search(Board &b, int alpha, int beta) {
 
 	for(auto &i : moves) {
 		const Point &p = i.first;
-		b.set(p.x, p.y, color);
-		++depth;
+		b.move(p.x, p.y);
 		int child_value;
 		//pvs
-		child_value = max_min_search(b, _alpha - 1, _alpha);
+		child_value = -max_min_search(b, _alpha - 1, _alpha, ply - 1);
 		if(child_value >= alpha && child_value < beta) {
-			child_value = max_min_search(b, _beta, _alpha);
+			child_value = -max_min_search(b, _beta, _alpha, ply - 1);
 		}
-		--depth;
-		b.set(p.x, p.y, 0);
+		b.unmove();
 		if(child_value > max_v) {
 			max_v = child_value;
 			pv_point = p;
@@ -510,8 +553,9 @@ int chis::max_min_search(Board &b, int alpha, int beta) {
 		}
 		if(time() - search_time >= SEARCH_TIME || (time_left - (time() - search_time) <= 200)) {//搜索时间到或者剩下的时间不足200ms
 			stop_insert = true;
-			return -max_v;
+			return max_v;
 		}
+		
 	}
 
 #ifdef CHIS_DEBUG
@@ -521,35 +565,42 @@ int chis::max_min_search(Board &b, int alpha, int beta) {
 #ifdef CHIS_DEBUG
 		++hashinsert;
 #endif
-		if(max_v == NEGA_LOS || max_v == NEGA_WON) {
-			ptb[b.hash_value()] = { 9, -max_v };//局终不看深度
-		}
-		else if(max_v >= alpha && max_v < beta) {//PV节点
-#ifdef CHIS_PARALLEL_KILL
-			if(vctf_search(b, true)) {
-				ptb[b.hash_value()] = { 9, NEGA_LOS };
-#ifdef CHIS_DEBUG
-				++vct_cnt;
-#endif
-				return NEGA_LOS;
-			}
-
-#endif
-			ptb[b.hash_value()] = { (SEARCH_DEPTH - depth), -max_v };
+		if(max_v == NEGA_LOS || max_v == NEGA_WON) {//杀局
+			ptb[b.hash_value()] = { HASH_GAMEOVER, 99, max_v };//局终不看深度
 		}
 		else if(max_v >= beta) {//beta节点
+			ptb[b.hash_value()] = { HASH_BETA, (ply), max_v };
+			//保存主要变例
 			pvs[b.hash_value()] = pv_point;
 #ifdef CHIS_DEBUG
 			++pvs_cnt;
 #endif
 		}
-		else {
+		else if(max_v < alpha) {//alpha节点
+			ptb[b.hash_value()] = { HASH_ALPHA, (ply), max_v };
 			if(pvs.find(b.hash_value()) != pvs.end()) {//不是beta节点了，删除主要变例
 				pvs.erase(b.hash_value());
 			}
 		}
+		else {//PV节点
+#ifdef CHIS_PARALLEL_KILL
+			//算杀
+			if(vctf_search(b, true)) {
+#ifdef CHIS_DEBUG
+				++vct_cnt;
+#endif
+				return NEGA_WON;
+			}
+
+#endif
+			ptb[b.hash_value()] = {HASH_PV, (ply), max_v };
+		}
+		
 	}
-	return -max_v;
+	else if(max_v == NEGA_LOS || max_v == NEGA_WON) {//杀局
+		ptb[b.hash_value()] = { HASH_GAMEOVER, 99, max_v };//局终不看深度
+	}
+	return max_v;
 }
 Point chis::chis_move(Board &b) {
 	search_time = time();//开始搜索的时间
@@ -559,12 +610,14 @@ Point chis::chis_move(Board &b) {
 	if(!b.move_count()) {
 		return Point(SIZE / 2, SIZE / 2);
 	}
+	for(int i = 0; i <= b.move_count() + 3; ++i) {
+		mtb[i].clear();
+	}
 	std::vector<_point_with_value> moves;
-	std::vector<_point_with_value> good_points;
 	int ps[30][30] = {};
 	get_move_in_root(ps, b);
-	for(int i = 0; i < SIZE; ++i) {
-		for(int j = 0; j < SIZE; ++j) {
+	for(char i = 0; i < SIZE; ++i) {
+		for(char j = 0; j < SIZE; ++j) {
 			if(ps[i][j] >= 2) {
 				moves.push_back(_point_with_value(Point(i, j), b.point_eval(i, j, cl ? -1 : 1)));
 			}
@@ -582,17 +635,20 @@ Point chis::chis_move(Board &b) {
 		MAX_DEPTH = 4;
 		MAX_P = 8;
 	}
-	else if(time_left >= SEARCH_TIME) {
-		//还原设置
-		CHIS_CONFIG.override_config();
-	}
 	else if(time_left <= SEARCH_TIME) {
 		SEARCH_TIME = time_left - 1795;
+	}
+	else {
+		//还原设置
+		CHIS_CONFIG.override_config();
 	}
 	for(SEARCH_DEPTH = 2; (SEARCH_DEPTH <= MAX_DEPTH); ++SEARCH_DEPTH) {
 		
 		GetProcessMemoryInfo(handle, &pmc, sizeof(pmc));//获取内存占用信息
-		if(pmc.WorkingSetSize / (1024.0 * 1024) >= HASH_SIZE) {
+		if(pmc.WorkingSetSize >= HASH_SIZE * (1024.0 * 1024)) {
+			for(int i = 0; i < 400; ++i) {
+				mtb[i].clear();
+			}
 			clear_hash();
 		}
 		alpha = NEGA_LOS;
@@ -635,18 +691,18 @@ Point chis::chis_move(Board &b) {
 
 		for(size_t i = 0; i < moves.size() && time() - search_time < SEARCH_TIME; ++i) {
 			const Point &p = moves[i].first;
-			b.set(p.x, p.y, cl ? -1 : 1);
-			int child_value;// = moves[i].value = max_min_search(b, NEGA_LOS, -alpha);
+			b.move(p.x, p.y);
+			int child_value;
 			if(alpha == NEGA_LOS) {
-				child_value = moves[i].value = max_min_search(b, NEGA_LOS, -alpha);
+				child_value = moves[i].value = -max_min_search(b, NEGA_LOS, -alpha, SEARCH_DEPTH);
 			}
 			else {
-				child_value = moves[i].value = max_min_search(b, -alpha - 1, -alpha);
+				child_value = moves[i].value = -max_min_search(b, -alpha - 1, -alpha, SEARCH_DEPTH);
 				if(child_value >= alpha && child_value != NEGA_WON) {
-					child_value = moves[i].value = max_min_search(b, NEGA_LOS, -alpha);
+					child_value = moves[i].value = -max_min_search(b, NEGA_LOS, -alpha, SEARCH_DEPTH);
 				}
 			}
-			b.set(p.x, p.y, 0);
+			b.unmove();
 			if(child_value > alpha) {
 				alpha = child_value;
 				good_point = p;
@@ -663,6 +719,9 @@ Point chis::chis_move(Board &b) {
 				}
 #endif
 			}
+		}
+		if(time() - search_time >= SEARCH_TIME) {
+			return good_point;
 		}
 #ifndef CHIS_DEBUG
 		if(alpha == NEGA_WON) {
@@ -753,6 +812,7 @@ void chis::safe_prune(Board &b, std::vector<_point_with_value> &moves) {
 		}
 	}
 	if(!moves_ped.empty()) {
-		moves = moves_ped;
+		//moves = moves_ped;
+		swap(moves, moves_ped);
 	}
 }

@@ -20,11 +20,14 @@ namespace chis
 	////////////////////////////////
 	struct Point {
 		//点类型
-		int x, y;
+		char x, y;
 		Point() {}
-		Point(int a, int b) :x(a), y(b) {}
+		Point(char a, char b) :x(a), y(b) {}
 		bool operator==(const Point&b)const {
 			return x == b.x && y == b.y;
+		}
+		bool operator<(const Point &p) const {
+			return ((x << 6) ^ y) < ((p.x << 6) ^ p.y);
 		}
 	};
 	struct _point_with_value {
@@ -32,12 +35,27 @@ namespace chis
 		Point first;
 		int value;
 		_point_with_value(Point _p, int _v) :first(_p), value(_v) {}
+
 		bool operator<(const _point_with_value &a)const {
 			return value > a.value;
+		}
+		bool operator==(const _point_with_value &b)const {
+			return first.x == b.first.x && first.y == b.first.y;
+		}
+	};
+	struct _pwv_cmp {
+		bool operator()(const _point_with_value &a, const _point_with_value &b) const {
+			return a.first.operator<(b.first);
 		}
 	};
 	struct _depth_with_value_ {
 		//搜索深度与节点值
+		//flag
+		//0 杀局
+		//1 alpha节点
+		//2 pv节点
+		//3 beta节点
+		char hash_flag;
 		char depth;
 		int value;
 	};
@@ -165,6 +183,10 @@ namespace chis
 			chis::SEARCH_TIME = SEARCH_TIME;
 		}
 	};
+	struct int_pair {
+		int first;
+		int second;
+	};
 	////////////////////////////////
 	class Board {
 		class itor_1 {//横向
@@ -184,6 +206,9 @@ namespace chis
 			int operator*() {
 				return b[i][j];
 			}
+			int& operator[](int) {
+				return b[i][j];
+			}
 			bool operator!=(itor_1 &a) {
 				return j != a.j;//变化的只有j
 			}
@@ -191,7 +216,6 @@ namespace chis
 				i = a.i;
 				j = a.j;
 			}
-		private:
 			int i, j;
 			int(&b)[30][30];
 		};
@@ -212,6 +236,9 @@ namespace chis
 			int operator*() {
 				return b[i][j];
 			}
+			int& operator[](int) {
+				return b[i][j];
+			}
 			bool operator!=(itor_2 &a) {
 				return i != a.i;
 			}
@@ -219,7 +246,6 @@ namespace chis
 				i = a.i;
 				j = a.j;
 			}
-		private:
 			int i, j;
 			int(&b)[30][30];
 		};
@@ -240,6 +266,9 @@ namespace chis
 			int operator*() {
 				return b[i][j];
 			}
+			int& operator[](int) {
+				return b[i][j];
+			}
 			bool operator!=(itor_3 &a) {
 				return i != a.i || j != a.j;
 			}
@@ -247,7 +276,6 @@ namespace chis
 				i = a.i;
 				j = a.j;
 			}
-		private:
 			int i, j;
 			int(&b)[30][30];
 		};
@@ -268,6 +296,9 @@ namespace chis
 			int operator*() {
 				return b[i][j];
 			}
+			int& operator[](int) {
+				return b[i][j];
+			}
 			bool operator!=(itor_4 &a) {
 				return i != a.i || j != a.j;
 			}
@@ -275,7 +306,6 @@ namespace chis
 				i = a.i;
 				j = a.j;
 			}
-		private:
 			int i, j;
 			int(&b)[30][30];
 		};
@@ -289,30 +319,33 @@ namespace chis
 		//维护step(move_count)
 		//维护_patterns
 		//...
-		int set(int i, int j, int c);
+		int set(char i, char j, int c);
+
+		void move(char i, char j);
+		void unmove();
 		int value() {
 			return default_para*(_patterns.first - _patterns.second);
 		}
 		int nega_value();
 		int evaluate();
 		//假设落子c于i，j。得到的（对点）估值。不影响棋盘本身。
-		int try_set(int i, int j, int c);
-		int try_set_nega(int i, int j, int c);
-		int point_eval(int i, int j, int try_c);
+		int try_set(char i, char j, int c);
+		int try_set_nega(char i, char j, int c);
+		int point_eval(char i, char j, int try_c);
 		//得到当前棋盘的棋型统计表
 		patterns_pair& get_patterns() {
 			return _patterns;
 		}
 		//得到i，j 点的四线（横竖撇捺）棋型统计表。
-		patterns_pair get_patterns(int i, int j);
-		//假设落子c于i，j。得到的棋型统计表。不影响棋盘本身。
-		patterns_pair get_patterns(int i, int j, int c);
-		Patterns get_update(int i, int j, int try_c, int ret_color = 0);
+		Patterns get_update(char i, char j, int try_c, int ret_color = 0);
 		//从棋型表判断，是否已有定局。
 		int have_winner();
 		//步数统计
 		int move_count() {
 			return step;
+		}
+		int turn_color() {
+			return turn;
 		}
 		//单独得到黑子棋型
 		const Patterns& black_patterns() {
@@ -331,11 +364,15 @@ namespace chis
 			for(int i = 0; i < SIZE; ++i) {
 				for(int j = 0; j < SIZE; ++j) {
 					b[i][j] = 0;
+					ps[i][j] = 0;
 				}
 			}
 			hash_key = 0;
 			step = 0;
 			_patterns.reset();
+			moves.clear();
+			pattern_change.clear();
+			turn = 1;
 			CHIS_CONFIG.override_config();
 		}
 		bool operator==(const Board &b2) const {
@@ -353,24 +390,25 @@ namespace chis
 			//判断棋盘顺序
 			return hash_key < b2.hash_key;
 		}
+		int ps[30][30] = {};//点权值数组
 	private:
 		int b[30][30] = {};//board 棋盘
 		__int64 hash_key = 0;//棋盘的64位hash值
 		patterns_pair _patterns;//动态的棋型统计表
 		int step = 0;//即move_count
-
+		int turn = 1;
 		//TODO：历史落子表
 		Point last_set;//最近一次落子的位置
 		int last_set_color;//最近一次落子的颜色
-
+		std::vector<Point> moves;
+		std::vector<patterns_pair> pattern_change;
+		void moves_update();
 		//更新统计表。仅在set之后调用。
-		inline void Board::update_patterns();
+		inline void update_patterns();
 		template<typename itor>
-		// 通过迭代器查找棋型并加到count上
-		inline void  patterns_of_line_add(patterns_pair &count, itor &begin);
+		void patterns_add(Patterns *ret, itor &begin, int c);
 		template<typename itor>
-		//通过迭代器查找棋型并从count上减去
-		inline void  patterns_of_line_dec(patterns_pair &count, itor &begin);
+		void patterns_dec(Patterns *ret, itor &begin, int c);
 		//基于点产生起始迭代器 (由于性lan能de问xie题daima，不提供尾后迭代器)
 		//由于遍历点p所在的四条直线（横竖撇捺）
 		itor_1 begin1(Point p) {
@@ -388,76 +426,6 @@ namespace chis
 			return p.x + p.y >= SIZE ?
 				itor_4(b, p.x + p.y - (SIZE - 1), SIZE - 1) :
 				itor_4(b, 0, p.x + p.y);
-		}
-		//begin_white 离此点最近的白色点 （左侧） begin_black 离此点最近的黑色点 (或者边缘)
-		template<typename itor>
-		inline itor begin_white(Point p) {
-			itor bg(b, p.x, p.y);
-			int n = 6, sp = 0;
-			--bg;
-			while(sp < 4 && --n && *bg != -1 && bg.in_board()) {
-				if(*bg == 0) {
-					++sp;
-				}
-				else {
-					sp = 0;
-				}
-				--bg;
-			}
-			//*bg == -1 || bg不在棋盘上
-			return bg;
-		}
-		template<typename itor>
-		inline itor begin_black(Point p) {
-			itor bg(b, p.x, p.y);
-			int n = 6, sp = 0;
-			--bg;
-			while(sp < 4 && --n && *bg != 1 && bg.in_board()) {
-				if(*bg == 0) {
-					++sp;
-				}
-				else {
-					sp = 0;
-				}
-				--bg;
-			}
-			//*bg == 1 || bg不在棋盘上 || n == 0
-			return bg;
-		}
-		//end_white 离此点最近的白色点（右侧） end_black 离此点最近的黑色点 (或者边缘)
-		template<typename itor>
-		inline itor end_white(Point p) {
-			itor bg(b, p.x, p.y);
-			int n = 6, sp = 0;
-			++bg;
-			while(sp < 4 && --n && *bg != -1 && bg.in_board()) {
-				if(*bg == 0) {
-					++sp;
-				}
-				else {
-					sp = 0;
-				}
-				++bg;
-			}
-			//*bg == -1 || bg不在棋盘上 || n == 0
-			return bg;
-		}
-		template<typename itor>
-		inline itor end_black(Point p) {
-			itor bg(b, p.x, p.y);
-			int n = 6, sp = 0;
-			++bg;
-			while(sp < 4 && --n && *bg != 1 && bg.in_board()) {
-				if(*bg == 0) {
-					++sp;
-				}
-				else {
-					sp = 0;
-				}
-				++bg;
-			}
-			//*bg == 1 || bg不在棋盘上
-			return bg;
 		}
 	};
 	////////////估值信息////////////

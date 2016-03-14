@@ -27,7 +27,7 @@ int chis::gomocup() {
 		if(last_is_board) {
 			b.clear();
 			for(size_t i = 0; i < ps.size(); ++i) {
-				b.set(ps[i].x, ps[i].y, i % 2 ? -1 : 1);
+				b.move(ps[i].x, ps[i].y);
 			}
 			ps.clear();
 			cl.clear();
@@ -59,7 +59,7 @@ int chis::gomocup() {
 				std::cout << "ERROR" << endl;
 			}
 			else {
-				b.set(x, y, 0);
+				b.unmove();
 				Point p;
 #ifndef NEGAMAX
 				p = chis_move(b);
@@ -67,8 +67,8 @@ int chis::gomocup() {
 #ifdef NEGAMAX
 				p = chis_move(b);
 #endif
-				std::cout << p.x << "," << p.y << endl;
-				b.set(p.x, p.y, b.move_count() % 2 ? -1 : 1);
+				std::cout << (int)p.x << "," << (int)p.y << endl;
+				b.move(p.x, p.y);
 			}
 		}
 		else if(command == "BEGIN") {
@@ -79,8 +79,8 @@ int chis::gomocup() {
 #ifdef NEGAMAX
 			p = chis_move(b);
 #endif
-			b.set(p.x, p.y, b.move_count() % 2 ? -1 : 1);
-			std::cout << p.x << "," << p.y << endl;
+			b.move(p.x, p.y);
+			std::cout << (int)p.x << "," << (int)p.y << endl;
 		}
 		else if(command == "TURN") {
 			int x, y;
@@ -91,15 +91,15 @@ int chis::gomocup() {
 			}
 			else {
 				Point p;
-				b.set(x, y, b.move_count() % 2 ? -1 : 1);
+				b.move(x, y);
 #ifndef NEGAMAX
 				p = chis_move(b);
 #endif
 #ifdef NEGAMAX
 				p = chis_move(b);
 #endif
-				std::cout << p.x << "," << p.y << endl;
-				b.set(p.x, p.y, b.move_count() % 2 ? -1 : 1);
+				std::cout << (int)p.x << "," << (int)p.y << endl;
+				b.move(p.x, p.y);
 			}
 		}
 

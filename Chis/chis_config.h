@@ -2,6 +2,8 @@
 #define CHIS_CFG
 #include "chis_hash.h"
 #include <unordered_map>
+#include <map>
+#include <set>
 #include <windows.h>
 #include <psapi.h>
 
@@ -14,13 +16,13 @@ namespace chis
 	struct chis_config;
 	class Board;
 	extern std::unordered_map<__int64, _depth_with_value_> ptb;
-	extern std::unordered_map<__int64, std::vector<_point_with_value>> mtb;
+	extern std::unordered_map<__int64, std::vector<_point_with_value>> mtb[400];
 	extern std::unordered_map<__int64, Point> pvs;
 	///////////////////////////////
 	//设置项
 	extern int SIZE;//棋盘大小（小于等于30）
 	extern int SEARCH_TIME;//搜索时间限制
-	extern double HASH_SIZE;//Hash表的大小限制(MB)
+	extern const int HASH_SIZE;//Hash表的大小限制(MB)
 	extern int RULE;//规则种类（TODO）
 	extern time_t timeout_match;//局时
 	extern time_t time_left;//步时
@@ -35,7 +37,6 @@ namespace chis
 	//（不要吐槽命名……）
 	extern time_t search_time;//搜索开始时间
 	extern int SEARCH_DEPTH;//当前叶节点搜索深度
-	extern int depth;//当前结点深度
 	extern int vc_depth;//vc
 	extern bool stop_insert;//停止插入HASH表（搜索结果不可信时）
 	////////////DEBUG信息////////
@@ -56,7 +57,16 @@ namespace chis
 	extern int pvs_cnt;//pv（主要变例）插入次数
 	extern int exp_cnt;//搜索延伸的次数
 	extern int max_scdepth;//最大搜索深度
-
+	//Profile
+	extern unsigned __int64 pf_begin;
+	extern unsigned __int64 move_creater_pf;
+	extern unsigned __int64 vct_finder_pf;
+	extern unsigned __int64 hash_finder_pf;
+	extern unsigned __int64 hash_inserter_pf;
+	extern unsigned __int64 gm_over_pf;
+	extern unsigned __int64 prunning_pf;
+	extern unsigned __int64 move_order_pf;
+	////////////////////////////////////////////
 	extern const Parameters default_para;//默认估值
 	extern const Parameters chs_point;//择序启发估值
 	extern const Parameters chs_value;//待测估值

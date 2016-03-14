@@ -4,12 +4,11 @@
 #include <vector> 
 using namespace chis;
 using namespace std;
-
 int quick_test();//快速对弈
 int main() {
 	//std::cout << chis::check_zobrist() << std::endl;//检查zobrist hashing数组是否重复
 	quick_test();
-	//gomocup();
+	gomocup();
 }
 ////////////////////////////测试相关///////////////////////////////////////
 int quick_test() {
@@ -18,17 +17,13 @@ int quick_test() {
 	int maxc[100] = {};
 	while(1) {
 		Board b;
-		/*b.set(7, 7, 1);
-		b.set(7, 8, -1);
-		b.set(7, 6, 1);
-		b.set(6, 7, -1);*/
 		int c = 1;
 		while(1) {
 			Point p;
 			time_t t = time();
 			p = chis_move(b);
-			b.set(p.x, p.y, c);
-			chis::ptb.clear();
+			b.move(p.x, p.y);
+			chis::clear_hash();
 			t = time() - t;
 
 			system("CLS");
@@ -48,6 +43,7 @@ int quick_test() {
 
 				std::cout << std::endl;
 			}
+		
 			//std::cout << b.step_path() << std::endl;
 			std::cout << "HASH_KEY: " << b.hash_value() << std::endl;
 			std::cout << "STEP: " << b.move_count() << " TIME: " << t << "ms" << " TIMELEFT: " << (time_left -= t) << "s" << std::endl;
@@ -96,6 +92,11 @@ int quick_test() {
 				std::cout << i << ": " << maxc[i] << " ";
 			}
 			std::cout << std::endl;
+			std::cout << "Profile:" << std::endl;
+			std::cout << "hash_finder: " << hash_finder_pf << " hash_insert: " << hash_inserter_pf << std::endl;
+			std::cout << "move_creator: " << move_creater_pf << " move_order: " << move_order_pf << std::endl;
+			std::cout << "prunning: " << prunning_pf << " game_over: " << gm_over_pf << std::endl;
+			std::cout << "vct_finder: " << vct_finder_pf << std::endl;
 			if(vct_cnt) {
 				//system("PAUSE");
 			}

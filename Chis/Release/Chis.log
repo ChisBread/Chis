@@ -1,0 +1,19 @@
+﻿  chis_config.cpp
+  chis_move.cpp
+  gomocup.cpp
+  gomoku_board.cpp
+  gomokuboard_hash.cpp
+  pattern_hash.cpp
+  simple.cpp
+c:\users\breadlin\documents\github\chis\chis\gomoku_board.h(357): warning C4351: 新增行为:  默认情况下初始化数组“chis::Board::b”的元素 (chis_config.cpp)
+c:\users\breadlin\documents\github\chis\chis\gomoku_board.h(357): warning C4351: 新增行为:  默认情况下初始化数组“chis::Board::b”的元素 (gomoku_board.cpp)
+c:\users\breadlin\documents\github\chis\chis\gomoku_board.h(357): warning C4351: 新增行为:  默认情况下初始化数组“chis::Board::b”的元素 (simple.cpp)
+c:\users\breadlin\documents\github\chis\chis\gomoku_board.h(357): warning C4351: 新增行为:  默认情况下初始化数组“chis::Board::b”的元素 (chis_move.cpp)
+c:\users\breadlin\documents\github\chis\chis\gomoku_board.h(357): warning C4351: 新增行为:  默认情况下初始化数组“chis::Board::b”的元素 (gomocup.cpp)
+chis_config.cpp(58): warning C4102: “chis”: 未引用的标签
+chis_move.cpp(558): warning C4800: “int”: 将值强制为布尔值“true”或“false”(性能警告)
+chis_move.cpp(590): warning C4244: “=”: 从“time_t”转换到“int”，可能丢失数据
+chis_move.cpp(615): warning C4018: “>”: 有符号/无符号不匹配
+  正在生成代码
+  已完成代码的生成
+  Chis.vcxproj -> C:\Users\Breadlin\Documents\GitHub\Chis\Release\Chis.exe
