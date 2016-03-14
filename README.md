@@ -1,6 +1,8 @@
 # Chis
-- Gomoku game (Five in a Row) playing program with a strong artificial intelligence algorithm. 
-- Documented in author's native language (Chinese) 
+Gomoku game (Five in a Row) playing program with a strong artificial intelligence algorithm. 
+Documented in author's native language (Chinese) 
+
+
 
 * Original author: PeiMing Zheng
 * Original website: None
