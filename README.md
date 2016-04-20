@@ -4,7 +4,7 @@ Documented in author's native language (Chinese)
 
 
 
-* Original author: PeiMing Zheng
+* Original author: Peiming Zheng
 * Original website: None
 * Programming language: C++
 * OS: Windows
