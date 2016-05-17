@@ -6,7 +6,7 @@ namespace chis {
 	struct Point;
 	struct _point_with_value;
 	///////////////////////////着法/搜索相关//////////////////////////////
-	int max_min_search(Board &b, int alpha, int beta, int ply);
+	int max_min_search(Board &b, int alpha, int beta, char ply);
 	//返回Chis对棋盘b计算出的走法
 	Point chis_move(Board &b);
 	void safe_prune(Board &b, std::vector<_point_with_value> &moves);

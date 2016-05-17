@@ -2,16 +2,38 @@
 #include <iostream>
 #include <time.h>
 #include <vector> 
+#include <fstream>
 using namespace chis;
 using namespace std;
-int quick_test();//å¿«é€Ÿå¯¹å¼ˆ
+int quick_test();//¿ìËÙ¶ÔÞÄ
+void create_rev() {
+	//1ABCDE->1EDCBA
+	//×î¸ßÎ»ÊÇ1£¬²»±ä£¬Ê£ÏÂµÄ·­×ª
+	ofstream fout("ptrev.txt");
+	for(unsigned i = 0; i < (1 << 7); ++i) {
+		unsigned k = i;
+		unsigned rev = 1;
+		while(k > 1) {//
+			rev = rev << 1;
+			if(k % 2) {
+				++rev;
+			}
+			k = k >> 1;
+		}
+		fout << (rev>>1) << ", ";
+		if(!(i%20)) {
+			fout << endl;
+		}
+	}
+}
 int main() {
+	//std::cout << chis::check_zobrist() << std::endl;//¼ì²ézobrist hashingÊý×éÊÇ·ñÖØ¸´
 	//quick_test();
 	gomocup();
 }
-////////////////////////////æµ‹è¯•ç›¸å…³///////////////////////////////////////
+////////////////////////////²âÊÔÏà¹Ø///////////////////////////////////////
 int quick_test() {
-	//TODO:å¹³è¡¡å¼€å±€
+	//TODO:Æ½ºâ¿ª¾Ö
 	int maxcnt = 0;
 	int maxc[100] = {};
 	while(1) {
@@ -26,16 +48,16 @@ int quick_test() {
 			t = time() - t;
 
 			system("CLS");
-			std::cout << (c == 1 ? "â—" : "â—‹") << std::endl;//
+			std::cout << (c == 1 ? "¡ñ" : "¡ð") << std::endl;//
 			std::cout << "  0 1 2 3 4 5 6 7 8 9 1011121314" << std::endl;
 			for(int i = 0; i < chis::SIZE; ++i) {
 				i >= 10 ? (std::cout << i) : (std::cout << " " << i);
 				for(int j = 0; j < chis::SIZE; ++j) {
 					if(i == p.x && j == p.y) {
-						std::cout << (c == 1 ? "â—†" : "â—‡");
+						std::cout << (c == 1 ? "¡ô" : "¡ó");
 					}
 					else {
-						std::cout << (b[i][j] == 1 ? "â—" : (b[i][j] ? "â—‹" : (PS[i][j] > 1 ? (c == 1 ? "â˜…" : "â˜†") : "â– ")));
+						std::cout << (b[i][j] == 1 ? "¡ñ" : (b[i][j] ? "¡ð" : (PS[i][j] > 1 ? (c == 1 ? "¡ï" : "¡î") : "¡ö")));
 					}
 					PS[i][j] = 0;
 				}
@@ -49,44 +71,44 @@ int quick_test() {
 			std::cout << "SPS: " << (timeout_match-time_left) *1.0 / b.move_count() << std::endl;
 			std::cout << "NPS: " << node_count / ((timeout_match - time_left)/1000.0) << std::endl;
 			std::cout << "VCT: " << vct_cnt << "  PVS: " << pvs_cnt << std::endl;
-			std::cout << "EXP: " << exp_cnt << " MAX_DEPTHï¼š" << max_scdepth << std::endl;
+			std::cout << "EXP: " << exp_cnt << " MAX_DEPTH£º" << max_scdepth << std::endl;
 			std::cout << "EVAL(ps): " << eval_cnt / ((timeout_match - time_left) / 1000.0) << std::endl;
 			std::cout << "Value:" << b.value() << std::endl;
 			std::cout << "Prune count: " << chis::prune_cnt << std::endl;
 			std::cout << "Patterns:" << std::endl;
 			std::cout
-				<< "èƒœåˆ©" << (int)b.black_patterns().wined << " "
-				<< "æ´»å››" << (int)b.black_patterns().four_l << " "
-				<< "å†²å››" << (int)b.black_patterns().four_b << " "
-				<< "æ´»ä¸‰" << (int)b.black_patterns().three_l << " "
-				<< "çœ ä¸‰" << (int)b.black_patterns().three_s << " "
-				<< "æ´»äºŒ" << (int)b.black_patterns().two_l << " "
-				<< "çœ äºŒ" << (int)b.black_patterns().two_s << " "
-				<< "æ´»ä¸€" << (int)b.black_patterns().one_l << " "
-				<< "çœ ä¸€" << (int)b.black_patterns().one_s << std::endl;
+				<< "Ê¤Àû" << (int)b.black_patterns().wined << " "
+				<< "»îËÄ" << (int)b.black_patterns().four_l << " "
+				<< "³åËÄ" << (int)b.black_patterns().four_b << " "
+				<< "»îÈý" << (int)b.black_patterns().three_l << " "
+				<< "ÃßÈý" << (int)b.black_patterns().three_s << " "
+				<< "»î¶þ" << (int)b.black_patterns().two_l << " "
+				<< "Ãß¶þ" << (int)b.black_patterns().two_s << " "
+				<< "»îÒ»" << (int)b.black_patterns().one_l << " "
+				<< "ÃßÒ»" << (int)b.black_patterns().one_s << std::endl;
 			std::cout
-				<< "èƒœåˆ©" << (int)b.white_patterns().wined << " "
-				<< "æ´»å››" << (int)b.white_patterns().four_l << " "
-				<< "å†²å››" << (int)b.white_patterns().four_b << " "
-				<< "æ´»ä¸‰" << (int)b.white_patterns().three_l << " "
-				<< "çœ ä¸‰" << (int)b.white_patterns().three_s << " "
-				<< "æ´»äºŒ" << (int)b.white_patterns().two_l << " "
-				<< "çœ äºŒ" << (int)b.white_patterns().two_s << " "
-				<< "æ´»ä¸€" << (int)b.white_patterns().one_l << " "
-				<< "çœ ä¸€" << (int)b.white_patterns().one_s << std::endl;
+				<< "Ê¤Àû" << (int)b.white_patterns().wined << " "
+				<< "»îËÄ" << (int)b.white_patterns().four_l << " "
+				<< "³åËÄ" << (int)b.white_patterns().four_b << " "
+				<< "»îÈý" << (int)b.white_patterns().three_l << " "
+				<< "ÃßÈý" << (int)b.white_patterns().three_s << " "
+				<< "»î¶þ" << (int)b.white_patterns().two_l << " "
+				<< "Ãß¶þ" << (int)b.white_patterns().two_s << " "
+				<< "»îÒ»" << (int)b.white_patterns().one_l << " "
+				<< "ÃßÒ»" << (int)b.white_patterns().one_s << std::endl;
 			//system("PAUSE");
-			std::cout << "Hashè¡¨ç»Ÿè®¡:" << std::endl;
-			GetProcessMemoryInfo(chis::handle, &chis::pmc, sizeof(chis::pmc));//èŽ·å–å†…å­˜å ç”¨ä¿¡æ¯
+			std::cout << "Hash±íÍ³¼Æ:" << std::endl;
+			GetProcessMemoryInfo(chis::handle, &chis::pmc, sizeof(chis::pmc));//»ñÈ¡ÄÚ´æÕ¼ÓÃÐÅÏ¢
 			//((ptb.size()*(sizeof(chis::_depth_with_value_) + sizeof(__int64))))*0.8 / (1024.0 * 256)
-			std::cout << "ç½®æ¢è¡¨ ï¼š æˆªæ–­æ¬¡æ•°: " << hashfinded << " æ’å…¥æ¬¡æ•°: " << hashinsert
-				<< " å½“å‰å¤§å°(å¤§æ¦‚æ˜¯è¿™ä¹ˆå¤§): "
+			std::cout << "ÖÃ»»±í £º ½Ø¶Ï´ÎÊý: " << hashfinded << " ²åÈë´ÎÊý: " << hashinsert
+				<< " µ±Ç°´óÐ¡(´ó¸ÅÊÇÕâÃ´´ó): "
 				<< (pmc.WorkingSetSize) / (1024.0 * 1024) << std::endl;
-			std::cout << "PVSè¡¨:" << pvs.size() << std::endl;
-			std::cout << "Alpha-Betaå‰ªæž: " << ab_count / (((timeout_match - time_left) / 1000.0)) << endl;
-			std::cout << "åˆ é™¤äº†å‡ ä¸ªå¿…è´¥ç‚¹: " << pruning_move_count << " ç»Ÿè®¡æ£‹åž‹æ—¶æŽ¨ç¿»äº†å‡ æ¬¡ç»“æžœ: " << real_cnt << std::endl;
+			std::cout << "PVS±í:" << pvs.size() << std::endl;
+			std::cout << "Alpha-Beta¼ôÖ¦: " << ab_count / (((timeout_match - time_left) / 1000.0)) << endl;
+			std::cout << "É¾³ýÁË¼¸¸ö±Ø°Üµã: " << pruning_move_count << " Í³¼ÆÆåÐÍÊ±ÍÆ·­ÁË¼¸´Î½á¹û: " << real_cnt << std::endl;
 			++maxc[good_move_cnt];
-			std::cout << "é€‰æ‹©äº†ç¬¬å‡ ä¸ªå€™é€‰ç‚¹ï¼š" << good_move_cnt 
-				<< " æœ€å¤šé€‰äº†ç¬¬å‡ ä¸ª/æ¬¡ï¼š" << ((good_move_cnt > maxcnt) ? (maxcnt = good_move_cnt) : maxcnt) << "/" << maxc[maxcnt] << std::endl;
+			std::cout << "Ñ¡ÔñÁËµÚ¼¸¸öºòÑ¡µã£º" << good_move_cnt 
+				<< " ×î¶àÑ¡ÁËµÚ¼¸¸ö/´Î£º" << ((good_move_cnt > maxcnt) ? (maxcnt = good_move_cnt) : maxcnt) << "/" << maxc[maxcnt] << std::endl;
 			for(int i = 0; i < 10; ++i) {
 				std::cout << i << ": " << maxc[i] << " ";
 			}

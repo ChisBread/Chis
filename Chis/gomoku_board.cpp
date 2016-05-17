@@ -1,20 +1,8 @@
 #include "gomoku_board.h"
 using namespace chis;
 
-//#define CHIS_TEST2//估值策略测试
-//#define CHIS_TEST3
+#define WIDTH 3
 ///////////////////////普通的函数////////////////////////////////
-int Board::set(char i, char j, int c) {
-	if(c) {
-		hash_key ^= zobrist[c == -1][(i*SIZE + j)];
-		++step;
-	}
-	else if(!c) {
-		--step;
-		hash_key ^= zobrist[(b[i][j] == -1)][(i*SIZE + j)];
-	}
-	return 0;
-}
 void Board::move(char i, char j) {
 	//set(i, j, turn);//落子
 	++step;
@@ -125,167 +113,76 @@ void Board::moves_update() {
 	//根据最近一次落子，更新权值表和着法表。
 	//todo 利用棋型表的更新
 	int n;
-#ifdef CHIS_TEST3
 	if(last_set_color) {
-		all_moves.erase({ last_set.x, last_set.y });
+		n = WIDTH;
+		for(itor_1 bg(ps, last_set.x, last_set.y); n && bg.in_board(); ++bg, --n) {
+			bg[0] += n;
+		}
+		n = WIDTH;
+		for(itor_1 bg(ps, last_set.x, last_set.y); n && bg.in_board(); --bg, --n) {
+			bg[0] += n;
+		}
+		n = WIDTH;
+		for(itor_2 bg(ps, last_set.x, last_set.y); n && bg.in_board(); ++bg, --n) {
+			bg[0] += n;
+		}
+		n = WIDTH;
+		for(itor_2 bg(ps, last_set.x, last_set.y); n && bg.in_board(); --bg, --n) {
+			bg[0] += n;
+		}
+		n = WIDTH;
+		for(itor_3 bg(ps, last_set.x, last_set.y); n && bg.in_board(); ++bg, --n) {
+			bg[0] += n;
+		}
+		n = WIDTH;
+		for(itor_3 bg(ps, last_set.x, last_set.y); n && bg.in_board(); --bg, --n) {
+			bg[0] += n;
+		}
+		n = WIDTH;
+		for(itor_4 bg(ps, last_set.x, last_set.y); n && bg.in_board(); ++bg, --n) {
+			bg[0] += n;
+		}
+		n = WIDTH;
+		for(itor_4 bg(ps, last_set.x, last_set.y); n && bg.in_board(); --bg, --n) {
+			bg[0] += n;
+		}
 	}
 	else {
-		all_moves[{ last_set.x, last_set.y }] = { 0, 0 };
-	}
-#endif
-	n = 3;
-	for(itor_1 bg(ps, last_set.x, last_set.y); n && bg.in_board(); ++bg, --n) {
-		if(last_set_color) {
-			bg[0] += n;
-#ifdef CHIS_TEST3
-			if(!b[bg.i][bg.j] && bg[0] >= 2) {//bg权值大于1，该点为空，此点可选（或者更新估值，set不会有重复元素）	
-				all_moves[{ bg.i, bg.j }] = { 0, 0 };
-			}
-#endif
-		}
-		else {
+		n = WIDTH;
+		for(itor_1 bg(ps, last_set.x, last_set.y); n && bg.in_board(); ++bg, --n) {
 			bg[0] -= n;
-#ifdef CHIS_TEST3
-			if(bg[0] < 2) {
-				all_moves.erase({ bg.i, bg.j });
-			}
-#endif
 		}
-	}
-	n = 3;
-	for(itor_1 bg(ps, last_set.x, last_set.y); n && bg.in_board(); --bg, --n) {
-		if(last_set_color) {
-			bg[0] += n;
-#ifdef CHIS_TEST3
-			if(!b[bg.i][bg.j] && bg[0] >= 2) {//bg权值大于1，该点为空，此点可选（或者更新估值，set不会有重复元素）	
-				all_moves[{ bg.i, bg.j }] = { 0, 0 };
-			}
-#endif
-		}
-		else {
+		n = WIDTH;
+		for(itor_1 bg(ps, last_set.x, last_set.y); n && bg.in_board(); --bg, --n) {
 			bg[0] -= n;
-#ifdef CHIS_TEST3
-			if(bg[0] < 2) {
-				all_moves.erase({ bg.i, bg.j });
-			}
-#endif
 		}
-	}
-	n = 3;
-	for(itor_2 bg(ps, last_set.x, last_set.y); n && bg.in_board(); ++bg, --n) {
-		if(last_set_color) {
-			bg[0] += n;
-#ifdef CHIS_TEST3
-			if(!b[bg.i][bg.j] && bg[0] >= 2) {//bg权值大于1，该点为空，此点可选（或者更新估值，set不会有重复元素）	
-				all_moves[{ bg.i, bg.j }] = { 0, 0 };
-			}
-#endif
-		}
-		else {
+		n = WIDTH;
+		for(itor_2 bg(ps, last_set.x, last_set.y); n && bg.in_board(); ++bg, --n) {
 			bg[0] -= n;
-#ifdef CHIS_TEST3
-			if(bg[0] < 2) {
-				all_moves.erase({ bg.i, bg.j });
-			}
-#endif
 		}
-	}
-	n = 3;
-	for(itor_2 bg(ps, last_set.x, last_set.y); n && bg.in_board(); --bg, --n) {
-		if(last_set_color) {
-			bg[0] += n;
-#ifdef CHIS_TEST3
-			if(!b[bg.i][bg.j] && bg[0] >= 2) {//bg权值大于1，该点为空，此点可选（或者更新估值，set不会有重复元素）	
-				all_moves[{ bg.i, bg.j }] = { 0, 0 };
-			}
-#endif
-		}
-		else {
+		n = WIDTH;
+		for(itor_2 bg(ps, last_set.x, last_set.y); n && bg.in_board(); --bg, --n) {
 			bg[0] -= n;
-#ifdef CHIS_TEST3
-			if(bg[0] < 2) {
-				all_moves.erase({ bg.i, bg.j });
-			}
-#endif
 		}
-	}
-	n = 3;
-	for(itor_3 bg(ps, last_set.x, last_set.y); n && bg.in_board(); ++bg, --n) {
-		if(last_set_color) {
-			bg[0] += n;
-#ifdef CHIS_TEST3
-			if(!b[bg.i][bg.j] && bg[0] >= 2) {//bg权值大于1，该点为空，此点可选（或者更新估值，set不会有重复元素）	
-				all_moves[{ bg.i, bg.j }] = { 0, 0 };
-			}
-#endif
-		}
-		else {
+		n = WIDTH;
+		for(itor_3 bg(ps, last_set.x, last_set.y); n && bg.in_board(); ++bg, --n) {
 			bg[0] -= n;
-#ifdef CHIS_TEST3
-			if(bg[0] < 2) {
-				all_moves.erase({ bg.i, bg.j });
-			}
-#endif
 		}
-	}
-	n = 3;
-	for(itor_3 bg(ps, last_set.x, last_set.y); n && bg.in_board(); --bg, --n) {
-		if(last_set_color) {
-			bg[0] += n;
-#ifdef CHIS_TEST3
-			if(!b[bg.i][bg.j] && bg[0] >= 2) {//bg权值大于1，该点为空，此点可选（或者更新估值，set不会有重复元素）	
-				all_moves[{ bg.i, bg.j }] = { 0, 0 };
-			}
-#endif
-		}
-		else {
+		n = WIDTH;
+		for(itor_3 bg(ps, last_set.x, last_set.y); n && bg.in_board(); --bg, --n) {
 			bg[0] -= n;
-#ifdef CHIS_TEST3
-			if(bg[0] < 2) {
-				all_moves.erase({ bg.i, bg.j });
-			}
-#endif
 		}
-	}
-	n = 3;
-	for(itor_4 bg(ps, last_set.x, last_set.y); n && bg.in_board(); ++bg, --n) {
-		if(last_set_color) {
-			bg[0] += n;
-#ifdef CHIS_TEST3
-			if(!b[bg.i][bg.j] && bg[0] >= 2) {//bg权值大于1，该点为空，此点可选（或者更新估值，set不会有重复元素）	
-				all_moves[{ bg.i, bg.j }] = { 0, 0 };
-			}
-#endif
-		}
-		else {
+		n = WIDTH;
+		for(itor_4 bg(ps, last_set.x, last_set.y); n && bg.in_board(); ++bg, --n) {
 			bg[0] -= n;
-#ifdef CHIS_TEST3
-			if(bg[0] < 2) {
-				all_moves.erase({ bg.i, bg.j });
-			}
-#endif
 		}
-	}
-	n = 3;
-	for(itor_4 bg(ps, last_set.x, last_set.y); n && bg.in_board(); --bg, --n) {
-		if(last_set_color) {
-			bg[0] += n;
-#ifdef CHIS_TEST3
-			if(!b[bg.i][bg.j] && bg[0] >= 2) {//bg权值大于1，该点为空，此点可选（或者更新估值，set不会有重复元素）	
-				all_moves[{ bg.i, bg.j }] = { 0, 0 };
-			}
-#endif
-		}
-		else {
+		n = WIDTH;
+		for(itor_4 bg(ps, last_set.x, last_set.y); n && bg.in_board(); --bg, --n) {
 			bg[0] -= n;
-#ifdef CHIS_TEST3
-			if(bg[0] < 2) {
-				all_moves.erase({ bg.i, bg.j });
-			}
-#endif
 		}
 	}
 }
+
 ///////////////////////棋型扫描函数////////////////////////////////
 template<typename itor>
 unsigned long get_patterns_key(itor &begin, int c) {//得到以begin为中心的棋型key
@@ -335,16 +232,22 @@ void Board::patterns_add(Patterns *ret, itor &begin, int c) {//以begin为中心，扫
 	else {
 		unsigned long key = 1;
 		itor l = begin, r = begin;
-		//两个方案
 		//1.各边长度限制
-		for(int len = 0; l.in_board() && *l != -c && len < 6; ++len, --l);
+		for(int len = 0; l.in_board() && *l != -c && len < 6; ++len, --l) {
+			key = key << 1;
+			if(*l == c) {
+				++key;
+			}
+		}
+		key = pattern_rev[key];
+		/*for(int len = 0; l.in_board() && *l != -c && len < 6; ++len, --l);
 		++l;
 		for(; l != r; ++l) {
 			key = key << 1;
 			if(*l == c) {
 				++key;
 			}
-		}
+		}*/
 		for(int len = 0; r.in_board() && *r != -c && len < 6; ++len, ++r) {
 			key = key << 1;
 			if(*r == c) {
@@ -386,16 +289,14 @@ void Board::patterns_dec(Patterns *ret, itor &begin, int c) {
 	else {
 		unsigned long key = 1;
 		itor l = begin, r = begin;
-		//两个方案
 		//1.各边长度限制
-		for(int len = 0; l.in_board() && *l != -c && len < 6; ++len, --l);
-		++l;
-		for(; l != r; ++l) {
+		for(int len = 0; l.in_board() && *l != -c && len < 6; ++len, --l) {
 			key = key << 1;
 			if(*l == c) {
 				++key;
 			}
 		}
+		key = pattern_rev[key];
 		for(int len = 0; r.in_board() && *r != -c && len < 6; ++len, ++r) {
 			key = key << 1;
 			if(*r == c) {

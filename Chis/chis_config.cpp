@@ -27,13 +27,15 @@ int chis::VCT_DEPTH = 10;
 int chis::VC2_DEPTH = 0;
 int chis::VC_DEPTH = VCT_DEPTH + VC2_DEPTH + VCF_DEPTH;
 chis_config chis::CHIS_CONFIG(VCF_DEPTH, VCT_DEPTH, VC2_DEPTH, MAX_DEPTH, MAX_P, SEARCH_TIME);//默认设置
-const int chis::HASH_SIZE = 325;//hash表大小（MB)
+const int chis::HASH_SIZE = 300;//hash表大小（MB)
 
 //动态项 
 time_t chis::search_time;//
 int chis::SEARCH_DEPTH;
 int chis::vc_depth = 1;
 bool chis::stop_insert = false;
+int chis::allow_expand = true;
+int chis::allow_findvct = true;
 /////////////debug相关///////////
 int chis::PS[30][30] = {};//选点
 int chis::hashfinded = 0;

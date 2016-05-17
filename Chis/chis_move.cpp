@@ -6,19 +6,20 @@
 #include <iostream>
 #pragma comment(lib,"psapi.lib") 
 /////////////编译开关////////////
-#define CHIS_DEBUG //debug 开关
+//#define CHIS_DEBUG //debug 开关
 //#define CHIS_DEFEND //选点策略
 //#define CHIS_EXP
 #define CHIS_VCT
 //#define CHIS_PROFILE
 //#define CHIS_PARALLEL_KILL
 //#define CHIS_VCT_EXP
+//#define CHIS_EXP
 #define NEGA_WON (INT_MAX - 1)
 #define NEGA_LOS (INT_MIN + 2)
-#define HASH_GAMEOVER 0
-#define HASH_ALPHA 1
-#define HASH_PV 2
-#define HASH_BETA 3
+#define HASH_GAMEOVER (char)(0)
+#define HASH_ALPHA (char)(1)
+#define HASH_PV (char)(2)
+#define HASH_BETA (char)(3)
 using namespace chis;
 
 ////////////////////////////////基本功能/////////////////////////////////
@@ -368,13 +369,9 @@ bool vctf_search(Board &b, bool p) {
 	return pn;
 }
 //////////////////////////////待测算法/////////////////////////////////////
-
+//先手优势搜索
 //////////////////////////////搜索算法/////////////////////////////////////
-int chis::max_min_search(Board &b, int alpha, int beta, int ply) {
-#ifdef CHIS_PROFILE
-	LARGE_INTEGER t_bg;
-	QueryPerformanceCounter(&t_bg);
-#endif
+int chis::max_min_search(Board &b, int alpha, int beta, char ply) {
 	if(ptb.find(b.hash_value()) != ptb.end()) {
 		if(ptb[b.hash_value()].depth == ply) {
 #ifdef CHIS_DEBUG
@@ -400,24 +397,8 @@ int chis::max_min_search(Board &b, int alpha, int beta, int ply) {
 		else if(ptb[b.hash_value()].hash_flag == HASH_GAMEOVER) {
 			return ptb[b.hash_value()].value;
 		}
-//		//待测策略
-//		else if(ptb[b.hash_value()].depth > ply) {
-//#ifdef CHIS_DEBUG
-//			++hashfinded;
-//#endif		
-//			if(ptb[b.hash_value()].hash_flag == HASH_BETA) {
-//				if(ptb[b.hash_value()].value >= beta) {
-//					return ptb[b.hash_value()].value;
-//				}
-//			}
-//			else if(ptb[b.hash_value()].hash_flag == HASH_ALPHA) {
-//				if(ptb[b.hash_value()].value <= alpha) {
-//					return ptb[b.hash_value()].value;
-//				}
-//			}
-//		}
 	}
-	if(!(time() % 200)) {
+	if(!(time() % 50)) {
 		GetProcessMemoryInfo(handle, &pmc, sizeof(pmc));//获取内存占用信息
 		if(pmc.WorkingSetSize >= HASH_SIZE * (1024 * 1024)) {
 			for(int i = 0; i < 400; ++i) {
@@ -425,69 +406,45 @@ int chis::max_min_search(Board &b, int alpha, int beta, int ply) {
 			}
 		}
 	}
-#ifdef CHIS_PROFILE
-	LARGE_INTEGER t_hash;
-	QueryPerformanceCounter(&t_hash);
-	hash_finder_pf += (t_hash.QuadPart - t_bg.QuadPart);
-#endif
-#ifdef CHIS_PROFILE
-	QueryPerformanceCounter(&t_bg);
-#endif
 	//终局剪枝
 	if(b.have_winner()) {//上家已经赢了
-		ptb[b.hash_value()] = { HASH_GAMEOVER, 99, NEGA_LOS };
+		ptb[b.hash_value()] = { HASH_GAMEOVER, (char)99, NEGA_LOS };
 		return NEGA_LOS;
 	}
-#ifdef CHIS_PROFILE
-	LARGE_INTEGER t_gmover;
-	QueryPerformanceCounter(&t_gmover);
-	gm_over_pf += (t_gmover.QuadPart - t_bg.QuadPart);
-#endif
 	//深度
 	if(ply <= 0) {
-#ifdef CHIS_EXP
-		if((b.move_count() % 2) ?
-			(b.black_patterns().four_b)
-			: (b.white_patterns().four_b)) {
-			++SEARCH_DEPTH;
-#ifdef CHIS_DEBUG
-			if(SEARCH_DEPTH > max_scdepth) {
-				max_scdepth = SEARCH_DEPTH;
-			}
-#endif
-			int v = -max_min_search(b, alpha, beta);//棋子带来的影响
-			--SEARCH_DEPTH;
-			return v;
-		}
-#endif
 		int v = b.nega_value();
 #ifdef CHIS_DEBUG
 		++eval_cnt;
 #endif
 #ifdef CHIS_VCT
-#ifdef CHIS_PROFILE
-		QueryPerformanceCounter(&t_bg);
-#endif
+
 		if(v > -beta && v < -alpha) {//可能被选中的情况下
-			if(vctf_search(b, true)) {//算杀。（奇数层为opp）
+			if(allow_findvct && vctf_search(b, true)) {//算杀。（奇数层为opp）
 #ifdef CHIS_DEBUG
 				++vct_cnt;
 #endif
-				ptb[b.hash_value()] = { HASH_GAMEOVER, 99, NEGA_WON };
+				ptb[b.hash_value()] = { HASH_GAMEOVER, (char)99, NEGA_WON };
 				return NEGA_WON;//
 			}
-		}
-#ifdef CHIS_PROFILE
-		LARGE_INTEGER t_vct;
-		QueryPerformanceCounter(&t_vct);
-		vct_finder_pf += t_vct.QuadPart - t_bg.QuadPart;
+#ifdef CHIS_EXP
+			if(allow_expand) {
+				const Patterns &who = b.turn_color() == 1 ? b.white_patterns() : b.black_patterns();
+				if(who.four_b || who.three_l) {
+					//冲四/活三延伸，平衡局面延伸
+					allow_expand = false;
+					allow_findvct = false;
+					int rv = max_min_search(b, alpha, beta, 4);
+					allow_expand = true;
+					allow_findvct = true;
+					return rv;
+				}
+			}
 #endif
+		}
 #endif
 		return v;
 	}
-#ifdef CHIS_PROFILE
-	QueryPerformanceCounter(&t_bg);
-#endif
 	std::vector<_point_with_value> moves;
 	int color = b.turn_color();//0代表返回最大，1代表返回最小
 	if(mtb[b.move_count()].find(b.hash_value()) == mtb[b.move_count()].end()) {
@@ -517,12 +474,6 @@ int chis::max_min_search(Board &b, int alpha, int beta, int ply) {
 			std::sort(moves.begin(), moves.end());
 		}
 	}
-#ifdef CHIS_PROFILE
-	LARGE_INTEGER t_mv_creater;
-	QueryPerformanceCounter(&t_mv_creater);
-	move_creater_pf += (t_mv_creater.QuadPart - t_bg.QuadPart);
-#endif
-	
 	int _alpha = -alpha;
 	int _beta = -beta;
 	int max_v = NEGA_LOS;//插入置换表的真实最值
@@ -566,7 +517,7 @@ int chis::max_min_search(Board &b, int alpha, int beta, int ply) {
 		++hashinsert;
 #endif
 		if(max_v == NEGA_LOS || max_v == NEGA_WON) {//杀局
-			ptb[b.hash_value()] = { HASH_GAMEOVER, 99, max_v };//局终不看深度
+			ptb[b.hash_value()] = { HASH_GAMEOVER, (char)99, max_v };//局终不看深度
 		}
 		else if(max_v >= beta) {//beta节点
 			ptb[b.hash_value()] = { HASH_BETA, (ply), max_v };
@@ -583,16 +534,6 @@ int chis::max_min_search(Board &b, int alpha, int beta, int ply) {
 			}
 		}
 		else {//PV节点
-#ifdef CHIS_PARALLEL_KILL
-			//算杀
-			if(vctf_search(b, true)) {
-#ifdef CHIS_DEBUG
-				++vct_cnt;
-#endif
-				return NEGA_WON;
-			}
-
-#endif
 			ptb[b.hash_value()] = {HASH_PV, (ply), max_v };
 		}
 		
@@ -640,8 +581,16 @@ Point chis::chis_move(Board &b) {
 	}
 	else {
 		//还原设置
+		
 		CHIS_CONFIG.override_config();
+		if(b.move_count() <= 5) {
+			MAX_DEPTH = 9;
+		}
+		else if(b.move_count() <= 15) {
+			MAX_DEPTH = 8;
+		}
 	}
+	
 	for(SEARCH_DEPTH = 2; (SEARCH_DEPTH <= MAX_DEPTH); ++SEARCH_DEPTH) {
 		
 		GetProcessMemoryInfo(handle, &pmc, sizeof(pmc));//获取内存占用信息
@@ -768,7 +717,6 @@ void chis::safe_prune(Board &b, std::vector<_point_with_value> &moves) {
 			}
 		}
 		else if(opp.three_l) {//对方有活三
-			//TODO XX__OO_O__XX 特判
 			if(me.three_s) {//己方有眠三，可冲可挡
 				for(auto&i : moves) {
 					Patterns &&pat = b.get_update(i.first.x, i.first.y, mec, oppc);//模拟己方落子，返回对方棋型
@@ -793,15 +741,14 @@ void chis::safe_prune(Board &b, std::vector<_point_with_value> &moves) {
 			}
 		}
 		else if((!me.two_l && !me.three_s) && (!opp.two_l && !opp.three_s)) {//双方没有活棋，做棋
-			bool hasbest = false;
 			for(auto&i : moves) {
 				Patterns &&pat = b.get_update(i.first.x, i.first.y, mec);//模拟己方落子，返回己方棋型
 				if(pat.two_l > me.two_l || pat.three_s > me.three_s) {//
 					moves_ped.push_back(i);
-					moves.back().value += (pat.two_l + pat.three_s)*default_para.two_l;
 				}
 			}
 		}
+		
 	}
 	else {//己方有四，可胜
 		for(auto&i : moves) {

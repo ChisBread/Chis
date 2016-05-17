@@ -39,6 +39,8 @@ namespace chis
 	extern int SEARCH_DEPTH;//当前叶节点搜索深度
 	extern int vc_depth;//vc
 	extern bool stop_insert;//停止插入HASH表（搜索结果不可信时）
+	extern int allow_expand;
+	extern int allow_findvct;
 	////////////DEBUG信息////////
 	extern int PS[30][30];//第一层的粗略候选点分布
 	extern int hashfinded;//查到置换表（截断）次数
