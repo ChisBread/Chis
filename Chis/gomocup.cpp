@@ -61,24 +61,14 @@ int chis::gomocup() {
 			else {
 				b.unmove();
 				Point p;
-#ifndef NEGAMAX
 				p = chis_move(b);
-#endif
-#ifdef NEGAMAX
-				p = chis_move(b);
-#endif
 				std::cout << (int)p.x << "," << (int)p.y << endl;
 				b.move(p.x, p.y);
 			}
 		}
 		else if(command == "BEGIN") {
 			Point p;
-#ifndef NEGAMAX
 			p = chis_move(b);
-#endif
-#ifdef NEGAMAX
-			p = chis_move(b);
-#endif
 			b.move(p.x, p.y);
 			std::cout << (int)p.x << "," << (int)p.y << endl;
 		}
@@ -92,12 +82,7 @@ int chis::gomocup() {
 			else {
 				Point p;
 				b.move(x, y);
-#ifndef NEGAMAX
 				p = chis_move(b);
-#endif
-#ifdef NEGAMAX
-				p = chis_move(b);
-#endif
 				std::cout << (int)p.x << "," << (int)p.y << endl;
 				b.move(p.x, p.y);
 			}
@@ -130,7 +115,7 @@ int chis::gomocup() {
 		else if(command == "INFO") {
 			string key;
 			cin >> key;
-			if(key == "timeout_turn") {//Ö»½ÓÊÜÂýÆå
+			if(key == "timeout_turn") {//Ã–Â»Â½Ã“ÃŠÃœÃ‚Ã½Ã†Ã¥
 				int value;
 				cin >> value;
 				if(value >= 100) {
