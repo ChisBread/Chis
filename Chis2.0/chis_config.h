@@ -56,8 +56,10 @@ namespace chis
 	extern int pruning_move_count;//必败着法删除个数
 	extern int good_move_cnt;//在搜索时选择了第几个点
 	extern int prune_cnt;//（安全）剪枝统计
+	//Windows
 	extern HANDLE handle;//当前进程的伪句柄
 	extern PROCESS_MEMORY_COUNTERS pmc;//内存信息
+	//
 	extern size_t node_count;//搜索的节点数
 	extern int eval_cnt;//估值次数
 
@@ -81,5 +83,7 @@ namespace chis
 	extern const Parameters chs_value2;//待测估值
 	extern const Parameters chs_value3;//待测估值
 	void clear_hash();
+	time_t time();
+	size_t memcost();
 }
 #endif

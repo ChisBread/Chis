@@ -36,9 +36,6 @@
     <ClInclude Include="chis_move.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="transposition_table.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="chis_board.cpp">

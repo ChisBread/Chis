@@ -11,6 +11,5 @@ namespace chis {
 	//返回Chis对棋盘b计算出的走法
 	Point chis_move(_board &b);
 	//////////////////////////////////////////////////////////////////////
-	time_t time();
 }
 #endif

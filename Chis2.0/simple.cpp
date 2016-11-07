@@ -7,47 +7,12 @@ using namespace chis;
 using namespace std;
 int quick_test2();//快速对弈
 int quick_game();//快速对弈
-void create_rev() {
-	//1ABCDE->1EDCBA
-	//最高位是1，不变，剩下的翻转
-	ofstream fout("ptrev.txt");
-	for(unsigned i = 0; i < (1 << 7); ++i) {
-		unsigned k = i;
-		unsigned rev = 1;
-		while(k > 1) {//
-			rev = rev << 1;
-			if(k % 2) {
-				++rev;
-			}
-			k = k >> 1;
-		}
-		fout << (rev>>1) << ", ";
-		if(!(i%20)) {
-			fout << endl;
-		}
-	}
-}
+
 int main() {
-	//std::cout << chis::check_zobrist() << std::endl;//检查zobrist hashing数组是否重复
-	//quick_test2();
-	//quick_game();
-	gomocup();
-	
+	quick_game();
+	//gomocup();
 }
 ////////////////////////////测试相关///////////////////////////////////////
-int quick_test2() {
-	//TODO:平衡开局
-	_board b(20);
-	for(int i = 0; i < 15; ++i) {
-		int x, y, c;
-		cin >> x >> y >> c;
-		x += 5;
-		y += 5;
-		b.make_move({(U8)x, (U8)y}, c);
-	}
-	b.clear();
-	return 0;
-}
 int quick_game() {
 	//TODO:平衡开局
 	int maxcnt = 0;
@@ -55,7 +20,6 @@ int quick_game() {
 	while(1) {
 		_board b(chis::SIZE);
 		int c = 1;
-		//b.make_move({ 12, 7 }, b.get_turn());
 		while(1) {
 			Point p;
 			time_t t = time();

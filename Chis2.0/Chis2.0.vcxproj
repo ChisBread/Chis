@@ -26,7 +26,6 @@
     <ClInclude Include="chis_move.h" />
     <ClInclude Include="gomocup.h" />
     <ClInclude Include="pattern_hash.h" />
-    <ClInclude Include="transposition_table.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="chis_board.cpp" />
