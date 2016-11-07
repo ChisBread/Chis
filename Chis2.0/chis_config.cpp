@@ -62,19 +62,47 @@ namespace chis {
 	
 	//清空hash表
 	void clear_hash() {
+#ifdef CHIS_ENABLE_MTB
+		for(int i = 0; i < 400; ++i) {
+			mtb[i].clear();
+		}
+#endif
 		ptb.clear();
 		pvs.clear();
 	}
+#ifdef WIN32
 	//Windows
 	HANDLE handle = GetCurrentProcess();//句柄
 	PROCESS_MEMORY_COUNTERS pmc;
 	time_t time() {
 		SYSTEMTIME t;
 		GetLocalTime(&t);
+
 		return (t.wMinute * 60 + t.wSecond) * 1000 + t.wMilliseconds;
 	}
 	size_t memcost() {
+		
 		GetProcessMemoryInfo(handle, &pmc, sizeof(pmc));//获取内存占用信息
 		return pmc.WorkingSetSize;
 	}
 }
+#else
+	time_t time(){
+		struct timeval tv;
+		gettimeofday(&tv,NULL);    
+		return tv.tv_sec * 1000 + tv.tv_usec / 1000;
+	}
+	size_t memcost() {
+		size_t size = (size_of(__int64) + sizeof(_depth_with_value_)) * ptb.max_size();
+		size += (size_of(__int64) + sizeof(Point)) * pvs.max_size();
+#ifdef CHIS_ENABLE_MTB
+		for(int i = 0; i < 400; ++i) {
+			size += 
+				(size_of(__int64) 
+				+ sizeof(std::vector<_point_with_value>) + 50 * size_of(_point_with_value))
+				* mtb[i].max_size();
+		}
+#endif
+		return size / 1024;
+	}
+#endif

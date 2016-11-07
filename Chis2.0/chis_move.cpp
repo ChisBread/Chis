@@ -9,6 +9,7 @@
 #define CHIS_DEBUG //debug 开关
 //#define CHIS_DEFEND //选点策略
 //#define CHIS_EXP
+#define CHIS_ENABLE_MTB //使用选点缓存
 #define CHIS_VCT
 //#define CHIS_VCT_EXP
 //#define CHIS_EXP
@@ -168,11 +169,7 @@ namespace chis {
 		}
 		if(!(time() % 8)) {
 			if(memcost() >= HASH_SIZE * (1024 * 1024)) {
-				for(int i = 0; i < 400; ++i) {
-					mtb[i].clear();
-				}
-				pvs.clear();
-				ptb.clear();
+				clear_hash();
 			}
 		}
 		//终局剪枝
@@ -215,6 +212,7 @@ namespace chis {
 			return v;
 		}
 		std::vector<_point_with_value> moves;
+#ifdef CHIS_ENABLE_MTB
 		if(mtb[b.moves_size()].find(b.hash_value()) == mtb[b.moves_size()].end()) {
 			std::swap(moves, (b.get_turn() == BLK ?
 				b.get_pruned_moves_black() : b.get_pruned_moves_white()));
@@ -235,13 +233,22 @@ namespace chis {
 				}
 			}
 		}
-		//寻找bug case
-		/*if(moves.empty()) {
-			for(auto &i : b.get_moves()) {
-			std::cout << (int)(i.first.x-5) << ", " << (int)(i.first.y-5) << ", 0" << std::endl;
+#else
+		std::swap(moves, (b.get_turn() == BLK ?
+			b.get_pruned_moves_black() : b.get_pruned_moves_white()));
+		if(pvs.find(b.hash_value()) != pvs.end()) {
+			for(int i = 0; i < moves.size(); ++i) {
+				if(moves[i].first == pvs[b.hash_value()]) {//如果是主要变例
+					int j = i;
+					while(j > 0) {
+						std::swap(moves[j - 1], moves[j]);
+						--j;
+					}
+					break;
+				}
 			}
-			system("PAUSE");
-			}*/
+		}
+#endif
 		int _alpha = -alpha;
 		int _beta = -beta;
 		int max_v = NEGA_LOS;//插入置换表的真实最值
