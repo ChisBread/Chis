@@ -12,6 +12,7 @@ Documented in author's native language (Chinese)
 Visual Studio solution includes 2 projects:
 - Chis project creates executable which can be used to play game in [Piskvork](https://sourceforge.net/projects/piskvork/). It can also participate in the [Gomocup tournament](http://gomocup.org/).
 - SillyChis 
+
 License:
 - [MPL 2.0](https://www.mozilla.org/en-US/MPL/2.0/)
 
